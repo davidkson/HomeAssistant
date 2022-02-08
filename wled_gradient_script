@@ -19,8 +19,8 @@ sequence:
          {% set b = namespace(value=0) %}
 
          {% set total_led_count = (stop_led - start_led) + 1 %}
-         {% set g_count = min(led_count, (total_led_count * 0.66667)| round) %}
-         {% set r_count = min((led_count - g_count), led_count) %}
+         {% set g_count = min(active_led_count, (total_led_count * 0.66667)| round) %}
+         {% set r_count = min((active_led_count - g_count), active_led_count) %}
 
          {# öka G #} 
          {% if g_count > 0 %}
@@ -45,7 +45,7 @@ sequence:
          {% endif %}
 
          {# släck inaktuella leds #} 
-         {% for i in range(led_count,total_led_count) %}
+         {% for i in range(active_led_count,total_led_count) %}
            {% set data.rgb = data.rgb + [[0,0,0]] %}
          {% endfor %}
 
