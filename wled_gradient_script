@@ -25,11 +25,11 @@ sequence:
          {# öka G #} 
          {% if g_count > 0 %}
            {% set g_increment = (255/g_count) | round %}
-           {% for i in range(0, g_count) %}
-             {% if g.value < 255 %}
+           {% for i in range(0, g_count) %}             
+             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+              {% if g.value < 255 %}
                {% set g.value = min(255, g.value + g_increment) %}    
              {% endif %}
-             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
            {% endfor %}
          {% endif %}
 
@@ -37,10 +37,10 @@ sequence:
          {% if r_count > 0 %}
            {% set r_decrement = (255/r_count) | round %}
            {% for i in range(0, r_count) %}
-           {% if r.value > 0 %}
-               {% set r.value =  max(0, r.value - r_decrement) %}    
-             {% endif %}
              {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+             {% if r.value > 0 %}
+               {% set r.value =  max(0, r.value - r_decrement) %}    
+             {% endif %}        
            {% endfor %}
          {% endif %}
 
