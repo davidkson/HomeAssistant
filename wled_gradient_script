@@ -1,0 +1,64 @@
+sequence:
+  - service: rest_command.wled_generic
+    data:
+      ip_address: '{{ ip_address }}'
+      payload: '{"on":true,"bri":{{ brightness }}, "seg":{"i":[0,59,[0,0,0]]}}'
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 500
+  - service: rest_command.wled_generic
+    data_template:
+      ip_address: '{{ ip_address }}'
+      payload: |
+         
+         {% set data = namespace(rgb=[]) %} 
+         {% set r = namespace(value=255) %} 
+         {% set g = namespace(value=0) %} 
+         {% set b = namespace(value=0) %}
+
+         {% set total_led_count = stop_led - start_led %}
+         {% set led_count = ((total_led_count * states(battery_entity)|int/100))| int %}
+         {# % set led_count = 60 % #}
+         {% set g_count = min(led_count, (total_led_count * 0.66667)| round) %}
+         {% set r_count = min((led_count - g_count), led_count) %}
+
+         {# öka G #} 
+         {% if g_count > 0 %}
+           {% set g_increment = (255/g_count) | round %}
+           {% for i in range(0, g_count) %}
+             {% if g.value < 255 %}
+               {% set g.value = min(255, g.value + g_increment) %}    
+             {% endif %}
+             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+           {% endfor %}
+         {% endif %}
+
+         {# minska R #} 
+         {% if r_count > 0 %}
+           {% set r_decrement = (255/r_count) | round %}
+           {% for i in range(0, r_count) %}
+           {% if r.value > 0 %}
+               {% set r.value =  max(0, r.value - r_decrement) %}    
+             {% endif %}
+             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+           {% endfor %}
+         {% endif %}
+
+         {# släck inaktuella leds #} 
+         {% for i in range(led_count,total_led_count+1) %}
+           {% set data.rgb = data.rgb + [[0,0,0]] %}
+         {% endfor %}
+
+         {% set rgb = namespace(value="") %}
+         {% for x in data.rgb %}          
+           {% set rgb.value = rgb.value + ((loop.index-1 + start_led-1) | string) + ',' + (x | string) + ','%}        
+         {% endfor%}
+
+         {% set rgb.value  = rgb.value[:-1] %}
+
+         {{ '{"seg":{"i":[' + rgb.value + ']}}'}}
+mode: queued
+max: 10
+alias: 'wled: battery level gradient'
