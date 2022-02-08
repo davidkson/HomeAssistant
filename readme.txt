@@ -6,4 +6,6 @@ data:
   brightness: 255  
   start_led: 1
   stop_led: 60
-  led_count: "{{ ((60 * states('sensor.volkswagen_id_id_4_rxg75z_state_of_charge')|int/100))| int }}"
+  active_led_count: 60
+  
+  #active_led_count: "{{ ((60 * states('sensor.volkswagen_id_id_4_rxg75z_state_of_charge')|int/100))| int }}"
