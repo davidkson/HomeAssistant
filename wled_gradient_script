@@ -19,8 +19,6 @@ sequence:
          {% set b = namespace(value=0) %}
 
          {% set total_led_count = stop_led - start_led %}
-         {% set led_count = ((total_led_count * states(battery_entity)|int/100))| int %}
-         {# % set led_count = 60 % #}
          {% set g_count = min(led_count, (total_led_count * 0.66667)| round) %}
          {% set r_count = min((led_count - g_count), led_count) %}
 
