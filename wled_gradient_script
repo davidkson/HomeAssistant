@@ -2,7 +2,7 @@ sequence:
   - service: rest_command.wled_generic
     data:
       ip_address: '{{ ip_address }}'
-      payload: '{"on":true,"bri":{{ brightness }}, "seg":{"i":[0,59,[0,0,0]]}}'
+      payload: '{"on":true,"bri":{{ brightness }}, "seg":{"i":[start_led-1,stop_led-1,[0,0,0]]}}'
   - delay:
       hours: 0
       minutes: 0
@@ -11,52 +11,80 @@ sequence:
   - service: rest_command.wled_generic
     data_template:
       ip_address: '{{ ip_address }}'
-      payload: |
-         
-         {% set data = namespace(rgb=[]) %} 
-         {% set r = namespace(value=255) %} 
-         {% set g = namespace(value=0) %} 
-         {% set b = namespace(value=0) %}
+      payload: >
 
-         {% set total_led_count = (stop_led - start_led) + 1 %}
-         {% set g_count = min(active_led_count, (total_led_count * 0.66667)| round) %}
-         {% set r_count = min((active_led_count - g_count), active_led_count) %}
+        {% set data = namespace(rgb=[]) %} 
 
-         {# öka G #} 
-         {% if g_count > 0 %}
-           {% set g_increment = (255/g_count) | round %}
-           {% for i in range(0, g_count) %}             
-             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-              {% if g.value < 255 %}
-               {% set g.value = min(255, g.value + g_increment) %}    
-             {% endif %}
-           {% endfor %}
-         {% endif %}
+        {% set r = namespace(value=255) %} 
 
-         {# minska R #} 
-         {% if r_count > 0 %}
-           {% set r_decrement = (255/r_count) | round %}
-           {% for i in range(0, r_count) %}
-             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-             {% if r.value > 0 %}
-               {% set r.value =  max(0, r.value - r_decrement) %}    
-             {% endif %}        
-           {% endfor %}
-         {% endif %}
+        {% set g = namespace(value=0) %} 
 
-         {# släck inaktuella leds #} 
-         {% for i in range(active_led_count,total_led_count) %}
-           {% set data.rgb = data.rgb + [[0,0,0]] %}
-         {% endfor %}
+        {% set b = namespace(value=0) %}
 
-         {% set rgb = namespace(value="") %}
-         {% for x in data.rgb %}          
-           {% set rgb.value = rgb.value + ((loop.index-1 + start_led-1) | string) + ',' + (x | string) + ','%}        
-         {% endfor%}
+        {% set reverse = false %}
 
-         {% set rgb.value  = rgb.value[:-1] %}
+        {% if stop_led < start_led %}
+            {% set reverse = true %}
+            {% set temp_stop = stop_led %}            
+            {% set stop_led = start_led %}
+            {% set start_led = temp_stop %}
+        {% endif %}
 
-         {{ '{"seg":{"i":[' + rgb.value + ']}}'}}
+        {% set total_led_count = (stop_led - start_led) + 1 %}
+
+        {% set g_count = min(active_led_count, (total_led_count * 0.66667)|round) %}
+
+        {% set r_count = min((active_led_count - g_count), active_led_count) %}
+
+
+        {# öka G #} 
+
+        {% if g_count > 0 %}
+          {% set g_increment = (255/g_count) | round %}
+          {% for i in range(0, g_count) %}             
+            {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+             {% if g.value < 255 %}
+              {% set g.value = min(255, g.value + g_increment) %}    
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+
+        {# minska R #} 
+
+        {% if r_count > 0 %}
+          {% set r_decrement = (255/r_count) | round %}
+          {% for i in range(0, r_count) %}
+            {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+            {% if r.value > 0 %}
+              {% set r.value =  max(0, r.value - r_decrement) %}    
+            {% endif %}        
+          {% endfor %}
+        {% endif %}
+
+
+        {# släck inaktuella leds #} 
+
+        {% for i in range(active_led_count,total_led_count) %}
+          {% set data.rgb = data.rgb + [[0,0,0]] %}
+        {% endfor %}
+
+
+        {% set rgb = namespace(value="") %}
+
+        {% for x in data.rgb %}     
+          {% if reverse == true %}
+            {% set rgb.value = rgb.value + ((stop_led - loop.index) | string) + ',' + (x | string) + ',' %}
+          {% else %}
+            {% set rgb.value = rgb.value + ((loop.index-1 + start_led-1) | string) + ',' + (x | string) + ',' %}
+          {% endif %}            
+        {% endfor%}
+
+
+        {% set rgb.value  = rgb.value[:-1] %}
+
+
+        {{ '{"seg":{"i":[' + rgb.value + ']}}'}}
 mode: queued
 max: 10
 alias: 'wled: battery level gradient'
