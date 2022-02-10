@@ -35,7 +35,7 @@ sequence:
 
          {% set total_led_count = (stop_led - start_led) + 1 %}
 
-         {% set r_count = min(active_led_count, (total_led_count * 0.15)|round)%}
+         {% set r_count = min(active_led_count, (total_led_count * 0.5)|round)%}
          {% set g_count = min((active_led_count - r_count), active_led_count) %}
 
          {# öka R #} 
