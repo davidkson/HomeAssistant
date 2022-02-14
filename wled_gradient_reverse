@@ -53,21 +53,9 @@ sequence:
             {% endfor %}
         {% endif %}
 
-         {# minska G #} 
-
-         {% if g_count > 0 %}
-           {% set g_decrement = (255/g_count) | round %}
-           {% for i in range(0, g_count) %}
-             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-             {% if g.value > 0 %}
-               {% set g.value =  max(0, g.value - g_decrement) %}    
-             {% endif %}        
-           {% endfor %}
-         {% endif %}
-
-          {# Minska G #} 
+         {# minska G #}
           {% if g_count > 0 %}
-            {% set r_decrement = (255/g_count) | round %}
+            {% set g_decrement = (255/g_count) | round %}
             {% for i in range(0, g_count) %}
               {% if current_led.value < active_led_count %}
                 {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
