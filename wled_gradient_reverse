@@ -17,13 +17,10 @@ sequence:
       payload: |
 
        {% set data = namespace(rgb=[]) %} 
-
          {% set r = namespace(value=0) %} 
-
          {% set g = namespace(value=255) %} 
-
          {% set b = namespace(value=0) %}
-
+         {% set current_led = namespace(value=0) %} 
          {% set reverse = false %}
 
          {% if stop_led < start_led %}
@@ -35,23 +32,28 @@ sequence:
 
          {% set total_led_count = (stop_led - start_led) + 1 %}
 
-         {% set r_count = min(active_led_count, (total_led_count * 0.5)|round)%}
-         {% set g_count = min((active_led_count - r_count), active_led_count) %}
-
+         {% set r_count = (total_led_count * 0.25)|round %}
+         {% set g_count = total_led_count - r_count %}
+         
          {# öka R #} 
+          {% if r_count > 0 %}
+            {% set r_increment = (255/r_count) | round %}
+            {% for i in range(0, r_count) %}             
+        
+              {% if current_led.value < active_led_count %}
+                {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+                {% if r.value < 255 %}
+                  {% set r.value = min(255, r.value + r_increment) %}    
+                {% endif %}
+              {% else %}
+                {% set data.rgb = data.rgb + [[0,0,0]] %}
+              {% endif %}
 
-         {% if r_count > 0 %}
-           {% set r_increment = (255/r_count) | round %}
-           {% for i in range(0, r_count) %}             
-             {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-              {% if r.value < 255 %}
-               {% set r.value = min(255, r.value + r_increment) %}    
-             {% endif %}
-           {% endfor %}
-         {% endif %}
+              {% set current_led.value = current_led.value +1 %}
+            {% endfor %}
+        {% endif %}
 
-
-          {# minska G #} 
+         {# minska G #} 
 
          {% if g_count > 0 %}
            {% set g_decrement = (255/g_count) | round %}
@@ -63,15 +65,24 @@ sequence:
            {% endfor %}
          {% endif %}
 
-         {# släck inaktuella leds #} 
+          {# Minska G #} 
+          {% if g_count > 0 %}
+            {% set r_decrement = (255/g_count) | round %}
+            {% for i in range(0, g_count) %}
+              {% if current_led.value < active_led_count %}
+                {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+                {% if g.value > 0 %}
+                  {% set g.value =  max(0, g.value - g_decrement) %}    
+                {% endif %}
+              {% else %}
+                  {% set data.rgb = data.rgb + [[0,0,0]] %}
+              {% endif %}
 
-         {% for i in range(active_led_count,total_led_count) %}
-           {% set data.rgb = data.rgb + [[0,0,0]] %}
-         {% endfor %}
-
-
+              {% set current_led.value = current_led.value +1 %}
+            {% endfor %}
+          {% endif %}
+          
          {% set rgb = namespace(value="") %}
-
          {% for x in data.rgb %}     
            {% if reverse == true %}
              {% set rgb.value = rgb.value + ((stop_led - loop.index) | string) + ',' + (x | string) + ',' %}
