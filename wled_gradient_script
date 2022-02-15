@@ -1,9 +1,27 @@
+sequence:
+  - service: rest_command.wled_generic
+    data:
+      ip_address: '{{ ip_address }}'
+      payload: >-
+        {"on":true,"bri":{{ brightness }},
+        "seg":{"i":[start_led-1,stop_led-1,[0,0,0]]}}
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 0
+      milliseconds: 500
+  - service: rest_command.wled_generic
+    data_template:
+      ip_address: '{{ ip_address }}'
+      payload: |
+
         {% set data = namespace(rgb=[]) %} 
-        {% set r = namespace(value=255) %} 
+        {% set r = namespace(value=0) %} 
         {% set g = namespace(value=0) %} 
         {% set b = namespace(value=0) %}
-        {% set current_led = namespace(value=0) %} 
         {% set reverse = false %}
+        {% set gradient_grade = 0.5 %}
+
         {% if stop_led < start_led %}
             {% set reverse = true %}
             {% set temp_stop = stop_led %}            
@@ -11,25 +29,50 @@
             {% set start_led = temp_stop %}
         {% endif %}
 
+        {% if style == 'red_green' %}
+            {% set r.value = 255 %}
+            {% set g.value = 0 %}
+            {% set gradient_grade = 0.75 %} 
+        {% elif style == 'green_red' %}
+            {% set r.value = 0 %}
+            {% set g.value = 255 %}
+            {% set gradient_grade = 0.25 %}        
+        {% endif %}
+
         {% set total_led_count = (stop_led - start_led) + 1 %}
-        {% set increment_count = (total_led_count * 0.75)|round %}
+        {% set increment_count = (total_led_count * gradient_grade)|round %}
         {% set decrement_count = (total_led_count - increment_count) %}
 
-        {% set g_increment = (255/increment_count) | round %}
-        {% set r_decrement = (255/decrement_count) | round %}
+        {% set increment = (255/increment_count) | round %}
+        {% set decrement = (255/decrement_count) | round %}
 
         {% for i in range(0, total_led_count) %}
-            {% if current_led.value < active_led_count %}
+
+            {% if loop.index0 < active_led_count %}
+
                 {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-                {% if g.value < 255 %}
-                    {% set g.value = min(255, g.value + g_increment) %}    
-                {% elif r.value > 0 %}
-                    {% set r.value = max(0, r.value - r_decrement) %} 
+                
+                {% if style == 'red_green' %}
+                    
+                    {% if g.value < 255 %}
+                        {% set g.value = min(255, g.value + increment) %}    
+                    {% elif r.value > 0 %}
+                        {% set r.value = max(0, r.value - decrement) %} 
+                    {% endif %}
+
+                {% elif style == 'green_red' %}
+                    
+                    {% if r.value < 255 %}
+                        {% set r.value = min(255, r.value + increment) %}    
+                    {% elif r.value > 0 %}
+                        {% set g.value = max(0, g.value - decrement) %} 
+                    {% endif %}
+
                 {% endif %}
             {% else %}
                 {% set data.rgb = data.rgb + [[0,0,0]] %}
             {% endif %}
-            {% set current_led.value = current_led.value +1 %}
+            
         {% endfor %}
 
         {% set rgb = namespace(value="") %}
@@ -37,10 +80,13 @@
             {% if reverse == true %}
                 {% set rgb.value = rgb.value + ((stop_led - loop.index) | string) + ',' + (x | string) + ',' %}
             {% else %}
-                {% set rgb.value = rgb.value + ((loop.index-1 + start_led-1) | string) + ',' + (x | string) + ',' %}
+                {% set rgb.value = rgb.value + ((loop.index0 + start_led-1) | string) + ',' + (x | string) + ',' %}
             {% endif %}            
         {% endfor%}
 
         {% set rgb.value  = rgb.value[:-1] %}
 
         {{ '{"seg":{"i":[' + rgb.value + ']}}'}}
+mode: queued
+max: 10
+alias: 'wled: battery level gradient'
