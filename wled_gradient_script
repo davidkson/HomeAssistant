@@ -64,7 +64,7 @@ sequence:
                     
                     {% if r.value < 255 %}
                         {% set r.value = min(255, r.value + increment) %}    
-                    {% elif r.value > 0 %}
+                    {% elif g.value > 0 %}
                         {% set g.value = max(0, g.value - decrement) %} 
                     {% endif %}
 
