@@ -27,54 +27,36 @@ sequence:
             {% set stop_led = start_led %}
             {% set start_led = temp_stop %}
         {% endif %}
+
         {% set total_led_count = (stop_led - start_led) + 1 %}
-        {% set g_count = (total_led_count * 0.75)|round %}
-        {% set r_count = (total_led_count - g_count) %}
+        {% set increment_count = (total_led_count * 0.75)|round %}
+        {% set decrement_count = (total_led_count - increment_count) %}
 
         {# öka G #}
+        {% set g_increment = (255/increment_count) | round %}
+        {% set r_decrement = (255/decrement_count) | round %}
 
-        {% if g_count > 0 %}
-          {% set g_increment = (255/g_count) | round %}
-          {% for i in range(0, g_count) %}             
-            
+        {% for i in range(0,total_led_count-1) %}
             {% if current_led.value < active_led_count %}
-              {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-              {% if g.value < 255 %}
-                {% set g.value = min(255, g.value + g_increment) %}    
-              {% endif %}
-            {% else %}
-              {% set data.rgb = data.rgb + [[0,0,0]] %}
-            {% endif %}
-
-            {% set current_led.value = current_led.value +1 %}
-          {% endfor %}
-
-        {% endif %}
-
-        {# minska R #} 
-        {% if r_count > 0 %}
-          {% set r_decrement = (255/r_count) | round %}
-          {% for i in range(0, r_count) %}
-            {% if current_led.value < active_led_count %}
-              {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
-              {% if r.value > 0 %}
-                {% set r.value =  max(0, r.value - r_decrement) %}    
-              {% endif %}
+                {% set data.rgb = data.rgb + [[r.value,g.value,b.value]] %}
+                {% if g.value < 255 %}
+                    {% set g.value = min(255, g.value + g_increment) %}    
+                {% elif r.value > 0 %}
+                    {% set r.value = max(0, r.value - r_decrement) %} 
+                {% endif %}
             {% else %}
                 {% set data.rgb = data.rgb + [[0,0,0]] %}
             {% endif %}
-
             {% set current_led.value = current_led.value +1 %}
-          {% endfor %}
-        {% endif %}
+        {% endfor %}
 
         {% set rgb = namespace(value="") %}
         {% for x in data.rgb %}     
-          {% if reverse == true %}
+            {% if reverse == true %}
             {% set rgb.value = rgb.value + ((stop_led - loop.index) | string) + ',' + (x | string) + ',' %}
-          {% else %}
+            {% else %}
             {% set rgb.value = rgb.value + ((loop.index-1 + start_led-1) | string) + ',' + (x | string) + ',' %}
-          {% endif %}            
+            {% endif %}            
         {% endfor%}
 
         {% set rgb.value  = rgb.value[:-1] %}
